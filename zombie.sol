@@ -18,6 +18,8 @@ contract ZombieFactory {
     mapping (address => uint) ownerZombieCount;
 
     function _createZombie(string memory _name, uint _dna) private {
+        //using require to owner account is zero
+        require(ownerZombieCount[msg.sender] == 0)
         uint id = zombies.push(Zombie(_name, _dna)) - 1;
         zombieToOwner[id] = msg.sender;
         ownerZombieCount[msg.sender]++;
