@@ -6,7 +6,10 @@ contract ZombieFeeding is ZombieFactory {
  
   
   function feedAndMultiply(uint _zombieId, uint _targetDna) public {
-
+      //verify that msg.sender is equal to this zombie's owner
+      require(msg.sender == zombieToOwner[_zombieId]);
+      //create a storag to store the Zombie's DNA
+      Zombie storage myZombie  = zombies[_zombieId];
   }
 
 }
