@@ -19,6 +19,7 @@ contract KittyInterface {
 
 contract ZombieFeeding is ZombieFactory {
 
+  // Using an interface to read from  another contract  
   address ckAddress = 0x06012c8cf97BEaD5deAe237070F9587f8E7A266d;
   // Initialize kittyContract here using `ckAddress` from above
   KittyInterface kittyContract = KittyInterface(ckAddress);
