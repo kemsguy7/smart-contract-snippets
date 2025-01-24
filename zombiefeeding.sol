@@ -18,12 +18,11 @@ contract KittyInterface {
 }
 
 contract ZombieFeeding is ZombieFactory {
-
-  
+ 
   //change this to just a declaration
   KittyInterface kittyContract;
 
-  function setKittyContractAddress(address _address) external {
+  function setKittyContractAddress(address _address) external onlyOwner {
     KittyInterface kittyContract = KittyInterface(_address);
   }
 
@@ -42,7 +41,7 @@ contract ZombieFeeding is ZombieFactory {
       newDna = newDna - newDna % 100 + 99;
     }
     //call the _create
-    _createZombie("NoName", newDna)
+    _createZombie("NoName", newDna);
   }
 
   function feedOnKitty(uint _zombieId, uint _kittyId) public {
