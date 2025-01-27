@@ -29,6 +29,16 @@ contract ZombieFeeding is ZombieFactory {
   // Initialize kittyContract here using `ckAddress` from above
   KittyInterface kittyContract = KittyInterface(ckAddress);
 
+  function _triggerCooldown(Zombie storage _zombie) internal {
+      _zombie.readyTime = uint32(now + cooldownTime);
+  }
+
+
+  //Tells us if enough time has passed since the last time a zombie fed. 
+  function _isReady(Zombie storage _zombie) internal view returns (bool) {
+      return (_zombie.readyTime <= now);
+  }
+
   function feedAndMultiply(uint _zombieId, uint _targetDna, string memory _species) public {
     //verify that msg.sender is equal to this zombie's owner
     require(msg.sender == zombieToOwner[_zombieId]);

@@ -6,6 +6,7 @@ contract ZombieFactory {
 
     uint dnaDigits = 16;
     uint dnaModulus = 10 ** dnaDigits;
+    uint cooldownTime = 1 days;
 
     struct Zombie {
         string name;
@@ -21,8 +22,8 @@ contract ZombieFactory {
 
     function _createZombie(string memory _name, uint _dna) private {
         //using require to owner account is zero
-        require(ownerZombieCount[msg.sender] == 0)
-        uint id = zombies.push(Zombie(_name, _dna)) - 1;
+        require(ownerZombieCount[msg.sender] == 0);
+        uint id = zombies.push(Zombie(_name, _dna, 1, uint32(now + cooldownTime))) - 1;
         zombieToOwner[id] = msg.sender;
         ownerZombieCount[msg.sender]++;
         emit NewZombie(id, _name, _dna);
