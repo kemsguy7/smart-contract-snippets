@@ -39,19 +39,26 @@ contract ZombieFeeding is ZombieFactory {
       return (_zombie.readyTime <= now);
   }
 
-  function feedAndMultiply(uint _zombieId, uint _targetDna, string memory _species) public {
+  //changed to internal function   so that it can be called from other functions in the contract without being modified by there
+  function feedAndMultiply(uint _zombieId, uint _targetDna, string memory _species) internal {
     //verify that msg.sender is equal to this zombie's owner
     require(msg.sender == zombieToOwner[_zombieId]);
     Zombie storage myZombie = zombies[_zombieId];
     //make sure the target dna isn't longer than 16 digits
     _targetDna = _targetDna % dnaModulus;
     // set the average to a new uint variable
+
+    // This function can only  execute if a zombie's cooldown time is over(Ready to be fed)
+    require _isReady(_zombie);
+
+    _targetDna = _targetDna % dnaModulus;                      
     uint newDna = (myZombie.dna + _targetDna) / 2;
     if (keccak256(abi.encodePacked(_species)) == keccak256(abi.encodePacked("kitty"))) {
       newDna = newDna - newDna % 100 + 99;
     }
     //call the _create
     _createZombie("NoName", newDna);
+    _triggerCooldown((myZombie)); //call the trigger cooldown function
   }
 
   function feedOnKitty(uint _zombieId, uint _kittyId) public {
