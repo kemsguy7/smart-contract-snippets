@@ -25,3 +25,18 @@ function getLastReturnValue() external {
  uint itemFee = 0.001 ether;
  msg.sender.transfer(msg.value - itemFee);
 
+
+ /*******************  USING UNCHECKED FUNCTION  *******/
+ // used to make loops more gas efficient
+
+    // This is a simple example of a loop that could be made more efficient with unchecked
+ uint256 length = array.length; 
+    for(uint256 i = 0; i < length; i++) {
+        doSomething(array[i]);
+    }
+
+unit256 length = array.length;
+    for(uint256 i = 0; i < length;) {
+        doSomething(array[1]);
+        unchecked { i++; } 
+    }
