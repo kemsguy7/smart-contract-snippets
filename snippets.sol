@@ -1,6 +1,10 @@
-// multiple returns 
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
 
-function multipleReturns() internal returns(uint a, uint b, uint c) {
+contract snippets{
+
+
+function multipleReturns()  internal returns(uint a, uint b, uint c) {
     return (1, 2, 3);
 }
 
@@ -20,23 +24,46 @@ function getLastReturnValue() external {
 }
 
 
-
-//if a user overpad for an item, this function will refund the difference
- uint itemFee = 0.001 ether;
- msg.sender.transfer(msg.value - itemFee);
-
+//if a user overpaid for an item, this function will refund the difference
+function refundOverpayment() external {
+    uint itemFee = 0.001 ether;
+    payable(msg.sender).transfer(msg.value - itemFee);
+}
 
  /*******************  USING UNCHECKED FUNCTION  *******/
- // used to make loops more gas efficient
+ // used to make loops more gas efficient - Loop Optimization
 
-    // This is a simple example of a loop that could be made more efficient with unchecked
- uint256 length = array.length; 
-    for(uint256 i = 0; i < length; i++) {
-        doSomething(array[i]);
+    uint256[] array;
+
+    function optimizedLoop() external {
+        uint256 length = array.length; 
+        for(uint256 i = 0; i < length; i++) {
+            doSomething(array[i]);
+        }
+
+        length = array.length;
+        for(uint256 i = 0; i < length;) {
+            doSomething(array[i]);
+            unchecked { i++; } 
+        }
     }
 
-unit256 length = array.length;
-    for(uint256 i = 0; i < length;) {
-        doSomething(array[1]);
-        unchecked { i++; } 
+    function doSomething(uint256 value) internal {
+        // Implementation of doSomething
     }
+}
+
+contract Nestmap {
+
+    //nestped mapping
+    mapping(uint256=>mapping(string=>uint256)) public User;
+    function adduser(uint256 _id, string memory _name, uint256 _age) public {
+        User[_id][_name] = _age;
+    }
+
+    //function to get information of the user
+    function getUser (uint256 _id, string memory _name ) public view returns (uint256) {
+        return User[_id][_name];
+    }
+
+}
