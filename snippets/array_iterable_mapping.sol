@@ -10,8 +10,6 @@ pragma solidity  ^0.8.26;
 
 contract FunctionOutputs   { 
 
-    
-
     uint[] public nums = [1, 2, 3];
 
     function example() external pure  {
