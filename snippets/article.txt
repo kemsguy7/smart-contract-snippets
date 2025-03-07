@@ -1,0 +1,264 @@
+# A Custom NFT Contract Implementation with On-Chain Metadata
+
+NFTs (Non-Fungible Tokens) have become a cornerstone of the digital asset ecosystem, allowing for unique digital ownership that wasn't possible before blockchain technology. This article explores a complete implementation of an on-chain NFT contract with monthly minting limits and owner-only token burning capabilities.
+
+## License, Pragma, and Imports
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts/utils/Base64.sol'; // used for encoding svg to base64
+import '@openzeppelin/contracts/utils/Strings.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+```
+
+The first line specifies the license under which the contract is released. The UNLICENSED identifier indicates that no license is granted to use this code.
+
+The second line, `pragma solidity ^0.8.28`, defines the compiler version to be used. The caret (^) symbol indicates that the contract can be compiled with version 0.8.28 or any newer version within the 0.8.x range.
+
+The import statements pull in established libraries from OpenZeppelin, a trusted source for secure, tested smart contract components:
+- **ERC721**: The standard interface for NFTs on Ethereum
+- **Base64**: Utility for encoding binary data (like SVG images) into Base64 format
+- **Strings**: Provides string manipulation functions
+- **Ownable**: Implements basic authorization control functions
+
+## Contract Declaration and State Variables
+
+```solidity
+contract KMSNFTOnChain is ERC721, Ownable {
+  using Strings for uint256;
+  
+  // Token counter
+  uint256 private _tokenIdCounter;
+  
+  // Monthly minting tracking
+  uint256 private _currentMonthlyCount;
+  uint256 private _lastResetTimestamp;
+  uint256 private constant _MAX_MONTHLY_MINTS = 100;
+  
+  // Custom errors
+  error TokenNotFound();
+  error MonthlyMintLimitExceeded();
+  error NotTokenOwner();
+  
+  // Modifiers
+  modifier onlyOwner() override {
+    require(owner() == _msgSender(), "Caller is not the owner");
+    _;
+  }
+```
+
+Our contract, named `KMSNFTOnChain`, inherits from both the ERC721 (NFT standard) and Ownable (access control) contracts. 
+
+The `using Strings for uint256` statement enables conversion from integers to strings, which will be useful when generating token metadata.
+
+### State Variables
+
+Several private state variables are declared:
+- **_tokenIdCounter**: Tracks the last minted token ID
+- **_currentMonthlyCount**: Keeps count of tokens minted in the current month
+- **_lastResetTimestamp**: Stores when the monthly counter was last reset
+- **_MAX_MONTHLY_MINTS**: A constant value that limits minting to 100 tokens per month
+
+### Custom Errors
+
+Custom errors are a gas-efficient way to handle exceptions in Solidity:
+- **TokenNotFound**: Used when a requested token doesn't exist
+- **MonthlyMintLimitExceeded**: Triggered when monthly minting limit is reached
+- **NotTokenOwner**: Used when an operation requires token ownership
+
+### onlyOwner Modifier
+
+The `onlyOwner` modifier overrides the one inherited from OpenZeppelin's Ownable contract. This modifier restricts certain functions to be callable only by the contract owner. The implementation checks if the caller (`_msgSender()`) is the contract owner and reverts with an error message if not.
+
+## Constructor
+
+```solidity
+constructor() ERC721('KemsguyNFT', 'NKFT') Ownable(msg.sender) {
+  // Initialize the last reset timestamp to current block timestamp
+  _lastResetTimestamp = block.timestamp;
+}
+```
+
+The constructor initializes our NFT contract with:
+1. The token collection name: "KemsguyNFT"
+2. The token symbol: "NKFT"
+3. Sets the contract deployer as the owner (via `Ownable(msg.sender)`)
+4. Initializes the `_lastResetTimestamp` with the current block timestamp, establishing the starting point for monthly minting limits
+
+## Monthly Count Management
+
+```solidity
+// Check and reset monthly count if needed
+function _checkAndResetMonthlyCount() private {
+  // Check if a month (30 days) has passed since last reset
+  if (block.timestamp >= _lastResetTimestamp + 30 days) {
+    _currentMonthlyCount = 0;
+    _lastResetTimestamp = block.timestamp;
+  }
+}
+```
+
+This private function implements the monthly minting limit mechanism:
+1. It checks if 30 days (defined as a month for this contract) have passed since the last reset
+2. If so, it resets the monthly count to zero and updates the timestamp
+3. The function is called before each minting operation to ensure the limits are enforced correctly
+
+## Token Metadata Generation
+
+```solidity
+function tokenURI(uint256 tokenId) public view override returns (string memory) {
+  if (ownerOf(tokenId) == address(0)) revert TokenNotFound();
+
+  string memory name = string(abi.encodePacked('KemsguyNFT #', tokenId.toString()));
+  string memory description = 'This is an on-chain NFT';
+  string memory image = generateBase64Image();
+
+  string memory json = string(
+    abi.encodePacked(
+      '{"name":"',
+      name,
+      '",',
+      '"description":"',
+      description,
+      '",',
+      '"image":"',
+      image,
+      '"}'
+    )
+  );
+
+  return string(abi.encodePacked('data:application/json;base64,', Base64.encode(bytes(json))));
+}
+```
+
+The `tokenURI` function is critical for NFTs as it provides the metadata for each token. This function:
+1. Checks if the token exists, reverting with `TokenNotFound` if it doesn't
+2. Creates a name for the token by combining "KemsguyNFT #" with the token ID
+3. Sets a simple description for all tokens
+4. Calls `generateBase64Image()` to get the SVG image as a Base64-encoded data URI
+5. Assembles these components into a JSON structure
+6. Encodes the entire JSON into Base64 and returns it as a data URI
+
+This approach stores all token metadata on-chain, making it fully decentralized and immune to link rot (where metadata stored off-chain becomes inaccessible).
+
+## SVG Image Generation
+
+```solidity
+function generateBase64Image() internal pure returns (string memory) {
+  string memory svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">'
+  // ... SVG content ...
+  '</svg>';
+
+  return string(abi.encodePacked('data:image/svg+xml;base64,', Base64.encode(bytes(svg))));
+}
+```
+
+The `generateBase64Image` function constructs an SVG image as a string. The SVG defines a fighter character with:
+- A gradient background
+- A silhouette figure with fighting gloves
+- Decorative elements and text
+- The "KEMSGUY FIGHTER" branding
+
+After constructing the SVG string, the function encodes it to Base64 and returns it as a data URI. This allows the image to be stored entirely on-chain and displayed by NFT marketplaces and wallets.
+
+## Minting Function
+
+```solidity
+function mint() public {
+  // Check and reset monthly count if needed
+  _checkAndResetMonthlyCount();
+  
+  // Check if monthly limit is exceeded
+  if (_currentMonthlyCount >= _MAX_MONTHLY_MINTS) {
+    revert MonthlyMintLimitExceeded();
+  }
+  
+  // Increment counters
+  _currentMonthlyCount += 1;
+  _tokenIdCounter += 1;
+  
+  // Mint the token
+  _safeMint(msg.sender, _tokenIdCounter);
+}
+```
+
+The `mint` function allows users to create new NFTs. It incorporates several steps:
+1. Calls `_checkAndResetMonthlyCount()` to update the monthly minting limits if necessary
+2. Checks if the monthly limit has been reached, reverting with `MonthlyMintLimitExceeded` if so
+3. Increments both the monthly counter and the token ID counter
+4. Calls `_safeMint` to create the token and assign it to the caller's address
+
+This implementation ensures that no more than 100 tokens can be minted in a 30-day period, creating scarcity and potentially increasing value.
+
+## Burning Function
+
+```solidity
+function burn(uint256 tokenId) public onlyOwner {
+  _burn(tokenId);
+}
+```
+
+The `burn` function permanently destroys a token. This function:
+1. Uses the `onlyOwner` modifier to restrict access to just the contract owner
+2. Calls the internal `_burn` function from the ERC721 implementation to destroy the token
+
+This functionality could be useful for removing counterfeit or problematic tokens from circulation, but it's restricted to the contract owner to prevent abuse.
+
+## Utility Functions
+
+```solidity
+// Get the current month's mint count
+function currentMonthlyMintCount() public view returns (uint256) {
+  return _currentMonthlyCount;
+}
+
+// Get remaining mints for the current month
+function remainingMonthlyMints() public view returns (uint256) {
+  return _MAX_MONTHLY_MINTS - _currentMonthlyCount;
+}
+
+// Get when the next monthly reset will occur (timestamp)
+function nextMonthlyReset() public view returns (uint256) {
+  return _lastResetTimestamp + 30 days;
+}
+```
+
+These public view functions provide transparency about the minting limits:
+1. `currentMonthlyMintCount()` returns how many tokens have been minted in the current month
+2. `remainingMonthlyMints()` calculates how many more tokens can be minted before reaching the monthly limit
+3. `nextMonthlyReset()` tells when the monthly counter will reset, allowing users to plan their minting
+
+## Monthly Minting Limit Implementation
+
+The monthly minting limit is implemented through a combination of state variables and logic:
+1. `_currentMonthlyCount` tracks tokens minted in the current period
+2. `_lastResetTimestamp` stores when the period began
+3. `_MAX_MONTHLY_MINTS` defines the limit (100 tokens)
+4. `_checkAndResetMonthlyCount()` resets the counter when a new period begins
+5. The `mint` function enforces the limit and increments the counter
+
+This mechanism creates artificial scarcity, potentially increasing the value of tokens. The 30-day period definition also ensures regular opportunities for new users to participate.
+
+## Owner-Only Burning Implementation
+
+The burning functionality is restricted to the contract owner through:
+1. The `onlyOwner` modifier, which checks the caller's identity
+2. Direct application of this modifier to the `burn` function
+
+This restriction is important as burning permanently removes tokens from circulation. By limiting this power to the contract owner, the implementation prevents malicious destruction of tokens.
+
+## Conclusion
+
+This NFT contract implementation demonstrates several advanced features:
+1. Fully on-chain metadata and images
+2. Monthly minting limits
+3. Owner-restricted token burning
+
+The implementation combines industry-standard components from OpenZeppelin with custom logic for minting limits and SVG generation. By storing all data on-chain and implementing scarcity through monthly limits, this contract creates valuable and truly decentralized digital assets.
+
+The monthly limit mechanism offers an interesting balance between unlimited minting (which might devalue tokens) and fixed supply (which might exclude late adopters). This approach allows for controlled growth of the collection while maintaining exclusivity.
+
+This contract serves as a solid foundation for creating unique digital collectibles with the fighter theme, creating permanent on-chain assets that can be traded on any marketplace supporting the ERC721 standard.
